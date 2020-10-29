@@ -31,3 +31,5 @@ func mustCopy(dst io.Writer, src io.Reader) {
 		log.Fatal(err)
 	}
 }
+
+// io.Copy(dst, src)

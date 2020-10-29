@@ -21,24 +21,27 @@ var (
 	messages = make(chan string) // all incoming client chat messages
 )
 
-//The broadcaster listens on the global entering and leaving channels for announcements of arriving and departing clients. 
+//The broadcaster listens on the global entering and leaving channels for announcements of arriving and departing clients.
 //When it receives one of these events, it updates the "clients"
 func broadcaster() {
 	// create a local variable type Map "clients" to record the current set of all connected clients
 	clients := make(map[client]bool)
-	
+
 	for {
 		select {
 		case msg := <-messages:
 			// Broadcast incoming message to all
 			// clients' outgoing message channels.
-			//TODO 
+			fmt.Printf("<========== New message received: " + msg + " ============>\n")
+			for key, _ := range clients {
+				key <- msg
+			}
 
 		case cli := <-entering:
-			//TODO
-		
-		//if a client leaving ?
-		case //TODO:
+			clients[cli] = true
+
+			//if a client leaving ?
+			// case //TODO:
 			//TODO
 		}
 	}
@@ -47,7 +50,7 @@ func broadcaster() {
 //!-broadcaster
 
 //!+handleConn
-//The handleConn function creates a new outgoing message channel for its client 
+//The handleConn function creates a new outgoing message channel for its client
 //and announces the arrival of this client to the broadcaster over the "entering" channel
 func handleConn(conn net.Conn) {
 	ch := make(chan string) // outgoing client messages
@@ -55,23 +58,28 @@ func handleConn(conn net.Conn) {
 
 	who := conn.RemoteAddr().String()
 	ch <- "You are " + who
+
 	messages <- who + " has arrived"
 	entering <- ch
 
 	//send chat message via os.stdin
-	//TODO
-
+	reader := bufio.NewReader(conn)
+	text, _ := reader.ReadString('\n')
+	messages <- text
 
 	//ctrl-D leaves os.stdin and leaves chatting
-	//TODO 
+	dead := false
 
 	//Close the connection
-	conn.Close()
+	if dead == true {
+		conn.Close()
+	}
 }
 
 func clientWriter(conn net.Conn, ch <-chan string) {
 	for msg := range ch {
 		fmt.Fprintln(conn, msg) // NOTE: ignoring network errors
+		// The fmt.Fprintln(w io.Writer, a {}) function in Go language formats using the default formats for its operands and writes to w
 	}
 }
 
@@ -80,19 +88,21 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 //!+main goroutine is to listen for and accept incoming network connections from clients. For each one,it creates a new handleConn goroutine.
 func main() {
 	//create listener
-	//TODO
+	psock, _ := net.Listen("tcp", ":"+"8000")
 
 	//create broadcaster
 	go broadcaster()
+
 	//Handle connection
 	for {
 		//1: listener should accept the incoming network connection
-		//TODO
+		conn, err := psock.Accept()
 		if err != nil {
 			log.Print(err)
 			continue
 		}
+
 		//2.create connection using handleConn method
-		//TODO
+		go handleConn(conn)
 	}
 }
