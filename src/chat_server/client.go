@@ -19,10 +19,24 @@ func main() {
 		log.Println("done")
 		done <- struct{}{} // signal the main goroutine
 	}()
+	// go CloseHandler(conn)
 	mustCopy(conn, os.Stdin)
 	conn.Close()
 	<-done // wait for background goroutine to finish
 }
+
+// func CloseHandler(conn net.Conn) {
+// 	c := make(chan os.Signal)
+// 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+// 	go func() {
+// 		<-c
+// 		fmt.Println("quit")
+// 		// io.Copy(conn, os.Stdout) // NOTE: ignoring errors
+// 		mustCopy(conn, os.Stdout)
+// 		fmt.Println("TEST")
+// 		os.Exit(1)
+// 	}()
+// }
 
 //!-
 

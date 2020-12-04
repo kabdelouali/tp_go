@@ -34,15 +34,19 @@ func broadcaster() {
 			// clients' outgoing message channels.
 			fmt.Printf("<========== New message received: " + msg + " ============>\n")
 			for key, _ := range clients {
-				key <- msg
+				if clients[key] == true {
+					key <- msg
+				}
 			}
 
 		case cli := <-entering:
 			clients[cli] = true
 
-			//if a client leaving ?
-			// case //TODO:
+		//if a client leaving ?
+		case cll := <-leaving:
+			clients[cll] = false
 			//TODO
+
 		}
 	}
 }
@@ -63,17 +67,24 @@ func handleConn(conn net.Conn) {
 	entering <- ch
 
 	//send chat message via os.stdin
-	reader := bufio.NewReader(conn)
-	text, _ := reader.ReadString('\n')
-	messages <- text
 
-	//ctrl-D leaves os.stdin and leaves chatting
-	dead := false
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		fmt.Println("TEXT: " + scanner.Text()) // Println will add back the final '\n'
+		// dead := false
+		text := scanner.Text()
+		//ctrl-D leaves os.stdin and leaves chatting
+		// if text == "" {
 
-	//Close the connection
-	if dead == true {
-		conn.Close()
+		// 	//Close the connection
+		// 	conn.Close()
+		// } else {
+		messages <- text
+		// }
 	}
+	messages <- who + " has left"
+	leaving <- ch
+
 }
 
 func clientWriter(conn net.Conn, ch <-chan string) {
@@ -88,10 +99,13 @@ func clientWriter(conn net.Conn, ch <-chan string) {
 //!+main goroutine is to listen for and accept incoming network connections from clients. For each one,it creates a new handleConn goroutine.
 func main() {
 	//create listener
-	psock, _ := net.Listen("tcp", ":"+"8000")
+	psock, _ := net.Listen("tcp", ":8000")
 
 	//create broadcaster
 	go broadcaster()
+
+	// setupCloseHandler
+	// go SetupCloseHandler()
 
 	//Handle connection
 	for {
